@@ -10,8 +10,40 @@ services:
           - /directus/ # สำคัญสำหรับ sub-paths
         strip_path: true # ให้ Kong ลบ /directus ออกไปก่อนส่งให้ Directus
     plugins:
+      # 1. Rate Limiting Plugin (จำกัดอัตราคำขอ)
       - name: rate-limiting
         config:
-          minute: 5  # อนุญาต 5 คำขอต่อนาที
-          hour: 100 # อนุญาต 100 คำขอต่อชั่วโมง
-          policy: local # ใช้ local policy สำหรับการทดสอบ. สำหรับ production ควรใช้ redis/cluster
+          minute: 60  # อนุญาต 60 คำขอต่อนาที
+          hour: 1000 # อนุญาต 1000 คำขอต่อชั่วโมง
+          policy: local # ใช้ local policy สำหรับการทดสอบ (ไม่แนะนำสำหรับ Production cluster)
+          # limit_by: consumer # (ตัวเลือก) ถ้าคุณต้องการจำกัดอัตราตาม Consumer ที่ยืนยันตัวตนแล้ว
+
+      # 2. Key Authentication Plugin (การยืนยันตัวตนด้วย API Key)
+      #    หมายเหตุ: เมื่อเปิดใช้งานปลั๊กอินนี้ใน Service, ทุกคำขอที่มาถึง Service นี้จะต้องมี Key ที่ถูกต้อง
+      - name: key-auth
+        config: {} # ปลั๊กอินนี้ไม่มี config ที่จำเป็นต้องตั้งค่าในตัวมันเอง
+
+      # 3. CORS Plugin (Cross-Origin Resource Sharing)
+      #    จัดการการอนุญาตการเข้าถึง API จากโดเมนอื่น
+      - name: cors
+        config:
+          origins:
+            - http://localhost:8000 # อนุญาตให้ request จาก Kong Proxy เอง
+            - http://localhost: # อนุญาตให้ request จาก localhost (ถ้า Directus UI รันแยก)
+          methods:
+            - GET
+            - POST
+            - PUT
+            - PATCH
+            - DELETE
+          headers:
+            - Content-Type
+            - Authorization
+            - Origin
+            - X-Requested-With
+          exposed_headers:
+            - X-Total-Count
+            - X-Page-Count
+            - X-Cache-Hit
+          credentials: true
+          max_age: 3600
