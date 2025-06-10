@@ -1,0 +1,17 @@
+# kong.yml
+_format_version: "3.0" # กำหนดเวอร์ชันของ declarative config
+services:
+  - name: directus-service
+    url: http://directus:8055 # ชี้ไปที่ Directus container ภายใน Docker network
+    routes:
+      - name: directus-route
+        paths:
+          - /directus
+          - /directus/ # สำคัญสำหรับ sub-paths
+        strip_path: true # ให้ Kong ลบ /directus ออกไปก่อนส่งให้ Directus
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 5  # อนุญาต 5 คำขอต่อนาที
+          hour: 100 # อนุญาต 100 คำขอต่อชั่วโมง
+          policy: local # ใช้ local policy สำหรับการทดสอบ. สำหรับ production ควรใช้ redis/cluster
